@@ -57,49 +57,47 @@ async def test_network():
 
 @app.post("/send-message")
 async def send_message(data: MessageData):
-    try:
-        name = data.name.strip()
-        email = data.email.strip()
-        message = data.message.strip()
+       try:
+           name = data.name.strip()
+           email = data.email.strip()
+           message = data.message.strip()
 
-        if not all([name, email, message]):
-            raise HTTPException(status_code=400, detail="All fields must not be empty")
-        if len(message) > 4096:
-            raise HTTPException(status_code=400, detail="Message exceeds 4096 character limit")
-        if '@' not in email or '.' not in email.split('@')[1]:
-            raise HTTPException(status_code=400, detail="Invalid email format")
+           if not all([name, email, message]):
+               raise HTTPException(status_code=400, detail="All fields must not be empty")
+           if len(message) > 4096:
+               raise HTTPException(status_code=400, detail="Message exceeds 4096 character limit")
+           if '@' not in email or '.' not in email.split('@')[1]:
+               raise HTTPException(status_code=400, detail="Invalid email format")
 
-        timestamp = datetime.now(timezone.utc).isoformat().split('.')[0] + " UTC"
-        telegram_message = (
-            f"*New Message*\n"
-            f"_Received on: {timestamp}_\n"
-            f"---\n"
-            f"*Sender Details:*\n"
-            f"- *Name:* {name}\n"
-            f"- *Email:* {email}\n"
-            f"---\n"
-            f"*Message:*\n"
-            f"{message}"
-        )
+           timestamp = datetime.now(timezone.utc).isoformat().split('.')[0] + " UTC"
+           telegram_message = (
+               f"*New Message*\n"
+               f"_Received on: {timestamp}_\n"
+               f"---\n"
+               f"*Sender Details:*\n"
+               f"- *Name:* {name}\n"
+               f"- *Email:* {email}\n"
+               f"---\n"
+               f"*Message:*\n"
+               f"{message}"
+           )
 
-        logger.debug(f"Sending message to chat_id: {TELEGRAM_CHAT_ID}")
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            bot = Bot(token=TELEGRAM_BOT_TOKEN, client=client)
-            try:
-                await bot.send_message(
-                    chat_id=TELEGRAM_CHAT_ID,
-                    text=telegram_message,
-                    parse_mode="Markdown",
-                    disable_notification=True
-                )
-                logger.info("Message sent successfully")
-                return {"success": True, "message": "Message sent to Telegram"}
-            except TelegramError as e:
-                logger.error(f"TelegramError: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"Failed to send message: {str(e)}")
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+           logger.debug(f"Sending message to chat_id: {TELEGRAM_CHAT_ID}")
+           try:
+               await bot.send_message(
+                   chat_id=TELEGRAM_CHAT_ID,
+                   text=telegram_message,
+                   parse_mode="Markdown",
+                   disable_notification=True
+               )
+               logger.info("Message sent successfully")
+               return {"success": True, "message": "Message sent to Telegram"}
+           except TelegramError as e:
+               logger.error(f"TelegramError: {str(e)}")
+               raise HTTPException(status_code=500, detail=f"Failed to send message: {str(e)}")
+       except Exception as e:
+           logger.error(f"Unexpected error: {str(e)}")
+           raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
